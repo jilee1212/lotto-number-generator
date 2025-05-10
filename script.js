@@ -18,6 +18,54 @@
     function init() {
         createExcludeNumbersGrid();
         setupEventListeners();
+        setupKeyboardShortcuts();
+    }
+    
+    // 키보드 단축키 설정 함수
+    function setupKeyboardShortcuts() {
+        document.addEventListener('keydown', function(event) {
+            // 입력 필드에 포커스가 있을 때는 단축키 무시
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            // 각 키에 따른 동작 처리
+            switch(event.key.toLowerCase()) {
+                case 'a': // 'a' 키: 일반 번호 생성
+                    document.getElementById('generate-button').click();
+                    break;
+                case 's': // 's' 키: AI 번호 생성
+                    document.getElementById('ai-generate-button').click();
+                    break;
+                case 'd': // 'd' 키: 특정 회차 비교
+                    document.getElementById('compareSpecificRoundButton').click();
+                    break;
+            }
+        });
+    }
+    
+    // 번호를 HTML span 요소로 변환하는 함수 (당첨번호와 비교하여 스타일 적용)
+    function createStyledNumberSpan(number, winningNumbers, bonusNumber) {
+        const span = document.createElement('span');
+        span.textContent = number;
+        
+        if (winningNumbers.includes(number)) {
+            span.className = 'matched-number';
+        } else if (number === bonusNumber) {
+            span.className = 'bonus-matched-number';
+        } else {
+            span.className = 'normal-number';
+        }
+        
+        return span;
+    }
+    
+    // 등수 표시 요소 생성 함수
+    function createRankIndicator(rank) {
+        const span = document.createElement('span');
+        span.textContent = rank === "낙첨" ? "(낙첨)" : `(${rank})`;
+        span.className = `rank-indicator rank-${rank === "낙첨" ? "lose" : rank.replace("등", "")}`;
+        return span;
     }
     
     // 이벤트 리스너 설정
@@ -82,22 +130,6 @@
             // ii. 총 당첨 개수 초기화
             let totalWinsThisRound = 0;
             
-            // iii. 각 조합에 대해 당첨 여부 확인
-            currentGeneratedCombinations.forEach(combo => {
-                const comparisonResult = compareNumbers(combo, historicalEntry);
-                const rank = getPrizeRank(comparisonResult.mainMatchCount, comparisonResult.bonusInGenerated);
-                
-                if (rank !== "낙첨") {
-                    currentRoundRankCounts[rank]++;
-                    totalWinsThisRound++;
-                }
-            });
-            
-            // h. 적중률 계산
-            const comboCount = currentGeneratedCombinations.length;
-            const hitRateThisRound = (comboCount > 0) ? (totalWinsThisRound / comboCount) * 100 : 0;
-            
-            // i. 결과 표시
             // 제목 추가
             const resultTitle = document.createElement('h4');
             resultTitle.textContent = `${targetRound}회차 비교 결과`;
@@ -108,16 +140,65 @@
             winningNumbersInfo.innerHTML = `<strong>당첨번호:</strong> ${historicalEntry.numbers.join(', ')} <span style="color: #FF6600;">(보너스: ${historicalEntry.bonus})</span>`;
             specificRoundResultArea.appendChild(winningNumbersInfo);
             
+            // 생성된 조합 컨테이너 추가
+            const combosContainer = document.createElement('div');
+            combosContainer.className = 'combos-container';
+            specificRoundResultArea.appendChild(combosContainer);
+            
+            // iii. 각 조합에 대해 당첨 여부 확인 및 표시
+            currentGeneratedCombinations.forEach((combo, index) => {
+                // 조합 컨테이너 생성
+                const comboContainer = document.createElement('div');
+                comboContainer.className = 'combo-container';
+                
+                // 조합 번호 레이블 생성
+                const comboLabel = document.createElement('span');
+                comboLabel.textContent = `조합 ${index + 1}: `;
+                comboContainer.appendChild(comboLabel);
+                
+                // 비교 결과 및 등수 계산
+                const comparisonResult = compareNumbers(combo, historicalEntry);
+                const rank = getPrizeRank(comparisonResult.mainMatchCount, comparisonResult.bonusInGenerated);
+                
+                // 각 번호를 스타일링하여 추가
+                combo.forEach(number => {
+                    const numberSpan = createStyledNumberSpan(number, historicalEntry.numbers, historicalEntry.bonus);
+                    comboContainer.appendChild(numberSpan);
+                });
+                
+                // 등수 표시 추가
+                const rankIndicator = createRankIndicator(rank);
+                comboContainer.appendChild(rankIndicator);
+                
+                // 조합 컨테이너를 결과 영역에 추가
+                combosContainer.appendChild(comboContainer);
+                
+                // 낙첨이 아니면 해당 등수 카운트 증가
+                if (rank !== "낙첨") {
+                    currentRoundRankCounts[rank]++;
+                    totalWinsThisRound++;
+                }
+            });
+            
+            // h. 적중률 계산
+            const comboCount = currentGeneratedCombinations.length;
+            const hitRateThisRound = (comboCount > 0) ? (totalWinsThisRound / comboCount) * 100 : 0;
+            
+            // 요약 정보 컨테이너 추가
+            const summaryContainer = document.createElement('div');
+            summaryContainer.className = 'summary-container';
+            specificRoundResultArea.appendChild(summaryContainer);
+            
             // 당첨 결과 표시
             if (totalWinsThisRound === 0) {
                 const noWinMsg = document.createElement('p');
                 noWinMsg.textContent = '당첨 없음';
-                specificRoundResultArea.appendChild(noWinMsg);
+                summaryContainer.appendChild(noWinMsg);
             } else {
                 // 총 당첨 정보
                 const totalWinsInfo = document.createElement('p');
                 totalWinsInfo.innerHTML = `<strong>총 당첨:</strong> ${totalWinsThisRound}개 (적중률: ${hitRateThisRound.toFixed(2)}%)`;
-                specificRoundResultArea.appendChild(totalWinsInfo);
+                summaryContainer.appendChild(totalWinsInfo);
                 
                 // 등수별 당첨 정보
                 const rankDetails = document.createElement('ul');
@@ -138,7 +219,7 @@
                         rankDetails.appendChild(rankItem);
                     }
                 }
-                specificRoundResultArea.appendChild(rankDetails);
+                summaryContainer.appendChild(rankDetails);
             }
         });
     }
@@ -387,6 +468,21 @@
         
         // 9. 각 역대 당첨 회차에 대한 시뮬레이션 수행
         historicalWinningNumbers.forEach(historicalEntry => {
+            // 회차 결과 컨테이너 생성
+            const roundResultContainer = document.createElement('div');
+            roundResultContainer.className = 'round-result-container';
+            resultsArea.appendChild(roundResultContainer);
+            
+            // 회차 제목 추가
+            const roundTitle = document.createElement('h5');
+            roundTitle.textContent = `${historicalEntry.round}회차 결과:`;
+            roundResultContainer.appendChild(roundTitle);
+            
+            // 당첨번호 정보 표시
+            const winningNumbersInfo = document.createElement('p');
+            winningNumbersInfo.innerHTML = `<strong>당첨번호:</strong> ${historicalEntry.numbers.join(', ')} <span style="color: #FF6600;">(보너스: ${historicalEntry.bonus})</span>`;
+            roundResultContainer.appendChild(winningNumbersInfo);
+            
             // a. 현재 회차에 대한 당첨 통계 초기화
             const currentRoundRankCounts = {
                 "1등": 0,
@@ -396,13 +492,33 @@
                 "5등": 0
             };
             
-            // b. 생성된 각 조합에 대한 당첨 여부 확인
-            currentGeneratedCombinations.forEach(combo => {
-                // i. 현재 조합과 역대 당첨번호 비교
-                const comparisonResult = compareNumbers(combo, historicalEntry);
+            // b. 생성된 각 조합에 대한 당첨 여부 확인 및 표시
+            currentGeneratedCombinations.forEach((combo, index) => {
+                // 조합 컨테이너 생성
+                const comboContainer = document.createElement('div');
+                comboContainer.className = 'combo-container';
                 
-                // ii. 등수 판별
+                // 조합 번호 레이블 생성
+                const comboLabel = document.createElement('span');
+                comboLabel.textContent = `조합 ${index + 1}: `;
+                comboContainer.appendChild(comboLabel);
+                
+                // 비교 결과 및 등수 계산
+                const comparisonResult = compareNumbers(combo, historicalEntry);
                 const rank = getPrizeRank(comparisonResult.mainMatchCount, comparisonResult.bonusInGenerated);
+                
+                // 각 번호를 스타일링하여 추가
+                combo.forEach(number => {
+                    const numberSpan = createStyledNumberSpan(number, historicalEntry.numbers, historicalEntry.bonus);
+                    comboContainer.appendChild(numberSpan);
+                });
+                
+                // 등수 표시 추가
+                const rankIndicator = createRankIndicator(rank);
+                comboContainer.appendChild(rankIndicator);
+                
+                // 조합 컨테이너를 결과 영역에 추가
+                combosContainer.appendChild(comboContainer);
                 
                 // iii. 낙첨이 아니면 해당 등수 카운트 증가
                 if (rank !== "낙첨") {
@@ -417,31 +533,43 @@
             const hitRateThisRound = (numberOfCombinationsToGenerate > 0) ? 
                 (totalWinsThisRound / numberOfCombinationsToGenerate) * 100 : 0;
             
-            // e. 결과 문자열 생성
-            let resultText = '';
+            // 요약 정보 컨테이너
+            const summaryInfo = document.createElement('div');
+            summaryInfo.className = 'summary-info';
+            roundResultContainer.appendChild(summaryInfo);
+            
+            // e. 결과 요약 표시
             if (totalWinsThisRound === 0) {
-                resultText = `${historicalEntry.round}회: 당첨 없음`;
+                const noWinMsg = document.createElement('p');
+                noWinMsg.textContent = '당첨 없음';
+                summaryInfo.appendChild(noWinMsg);
             } else {
-                resultText = `${historicalEntry.round}회: 총 ${totalWinsThisRound}개 당첨 (1등: ${currentRoundRankCounts["1등"]}개, 2등: ${currentRoundRankCounts["2등"]}개, 3등: ${currentRoundRankCounts["3등"]}개, 4등: ${currentRoundRankCounts["4등"]}개, 5등: ${currentRoundRankCounts["5등"]}개) - 적중률: ${hitRateThisRound.toFixed(2)}%`;
-            }
-            
-            // f. 결과를 화면에 표시
-            const resultElement = document.createElement('p');
-            resultElement.textContent = resultText;
-            
-            // 당첨이 있는 회차는 강조 표시
-            if (totalWinsThisRound > 0) {
-                resultElement.style.fontWeight = 'bold';
+                // 총 당첨 정보
+                const totalWinsInfo = document.createElement('p');
+                totalWinsInfo.innerHTML = `<strong>총 당첨:</strong> ${totalWinsThisRound}개 (적중률: ${hitRateThisRound.toFixed(2)}%)`;
+                summaryInfo.appendChild(totalWinsInfo);
                 
-                // 1등, 2등이 있으면 특별히 색상으로 강조
-                if (currentRoundRankCounts["1등"] > 0) {
-                    resultElement.style.color = '#FF0000'; // 빨간색
-                } else if (currentRoundRankCounts["2등"] > 0) {
-                    resultElement.style.color = '#FF6600'; // 주황색
+                // 등수별 당첨 정보
+                const rankDetails = document.createElement('ul');
+                for (const [rank, count] of Object.entries(currentRoundRankCounts)) {
+                    if (count > 0) {
+                        const rankItem = document.createElement('li');
+                        rankItem.innerHTML = `<strong>${rank}:</strong> ${count}개`;
+                        
+                        // 1등과 2등은 특별히 강조
+                        if (rank === "1등") {
+                            rankItem.style.color = '#FF0000';
+                            rankItem.style.fontWeight = 'bold';
+                        } else if (rank === "2등") {
+                            rankItem.style.color = '#FF6600';
+                            rankItem.style.fontWeight = 'bold';
+                        }
+                        
+                        rankDetails.appendChild(rankItem);
+                    }
                 }
+                summaryInfo.appendChild(rankDetails);
             }
-            
-            resultsArea.appendChild(resultElement);
         });
     }
     
@@ -614,18 +742,26 @@
         const availableNumbers = allPossibleNumbers.filter(num => !excludedNumbers.has(num));
         console.log("사용 가능한 번호 풀:", availableNumbers);
         
-        // 새 조합 생성 가능 여부 확인
+        // 3. 새 조합 생성 가능 여부 확인
         if (availableNumbers.length < 6) {
             resultsArea.innerHTML = '<p>제외할 번호가 너무 많아 새로운 조합을 생성할 수 없습니다.</p>';
             return;
         }
         
-        // 3. 생성할 조합 개수 결정
+        // 4. 역대 당첨번호 데이터 존재 여부 확인
+        if (historicalWinningNumbers.length === 0) {
+            resultsArea.innerHTML = '<p>역대 당첨번호 CSV 파일을 먼저 로드해주세요. AI 기반 생성을 위해 필요합니다.</p>';
+            return;
+        }
+        
+        // 5. 번호 빈도 계산 (이미 calculateNumberFrequencies 함수가 CSV 로드 시 호출됨)
+        console.log("각 번호 빈도:", numberFrequencies);
+        
+        // 6. 생성할 조합 개수 결정
         const combinationCountInput = document.getElementById('combination-count-input');
         let numberOfCombinationsToGenerate = parseInt(combinationCountInput.value);
-        console.log(`생성할 조합 개수: ${numberOfCombinationsToGenerate}`);
         
-        // 4. 유효성 검사: 생성할 조합 개수가 유효한지 확인
+        // 7. 유효성 검사: 생성할 조합 개수가 유효한지 확인
         if (isNaN(numberOfCombinationsToGenerate) || numberOfCombinationsToGenerate < 1 || numberOfCombinationsToGenerate > 50) {
             // 유효하지 않은 값이면 기본값 5로 설정
             alert("생성할 조합 개수는 1에서 50 사이의 숫자여야 합니다. 기본값 5로 설정됩니다.");
@@ -636,79 +772,152 @@
         // 마지막 생성 개수 저장
         lastNumberOfCombinationsToGenerate = numberOfCombinationsToGenerate;
         
-        // 5. 번호 빈도 데이터 확인
-        if (Object.keys(numberFrequencies).length === 0) {
-            resultsArea.innerHTML = '<p>AI 생성: 번호 빈도 데이터가 로드되지 않았습니다. CSV 파일을 먼저 로드해주세요.</p>';
-            return;
-        }
+        // 8. 사용 가능한 숫자들을 Hot, Neutral, Cold 그룹으로 분류
+        const numberGroups = categorizeAvailableNumbers(availableNumbers, numberFrequencies);
+        console.log("분류된 번호 그룹:", numberGroups);
         
-        // 6. AI 번호 생성 로직 - Hot & Cold 기반 접근법
-        
-        // 번호 분류
-        const { hot, neutral, cold } = categorizeAvailableNumbers(availableNumbers, numberFrequencies);
-        console.log("AI 분류 - Hot:", hot, "Neutral:", neutral, "Cold:", cold);
-        
-        // 요청한 조합 개수만큼 반복
+        // 9. AI 기반 조합 생성
         for (let i = 0; i < numberOfCombinationsToGenerate; i++) {
-            // 새 조합을 저장할 배열
-            let newCombination = [];
-            // 현재 조합에 사용된 번호를 추적하는 Set
-            let pickedNumbersSet = new Set();
+            // 그룹별 선택 숫자 개수 결정 (전략적으로 다양한 분포를 시도)
+            let hotCount, neutralCount, coldCount;
             
-            // AI 전략: Hot에서 2개, Neutral에서 2개, Cold에서 2개 선택
-            let strategy = [
-                { group: hot, count: 2 },
-                { group: neutral, count: 2 },
-                { group: cold, count: 2 }
-            ];
+            // 매 조합마다 다른 전략 사용 (총 6개 숫자)
+            switch (i % 5) {
+                case 0: // 균형 분포: 각 그룹에서 동일하게 선택
+                    hotCount = 2;
+                    neutralCount = 2;
+                    coldCount = 2;
+                    break;
+                case 1: // 핫 숫자 중심: 핫 숫자 4개, 나머지 그룹에서 1개씩
+                    hotCount = 4;
+                    neutralCount = 1;
+                    coldCount = 1;
+                    break;
+                case 2: // 중립 숫자 중심: 중립 숫자 4개, 나머지 그룹에서 1개씩
+                    hotCount = 1;
+                    neutralCount = 4;
+                    coldCount = 1;
+                    break;
+                case 3: // 콜드 숫자 중심: 콜드 숫자 4개, 나머지 그룹에서 1개씩
+                    hotCount = 1;
+                    neutralCount = 1;
+                    coldCount = 4;
+                    break;
+                case 4: // 핫+중립 조합: 핫 3개, 중립 3개
+                    hotCount = 3;
+                    neutralCount = 3;
+                    coldCount = 0;
+                    break;
+                default:
+                    hotCount = 2;
+                    neutralCount = 2;
+                    coldCount = 2;
+            }
             
-            // 각 그룹에서 번호 선택
-            strategy.forEach(s => {
-                const pickedFromGroup = getRandomUniqueNumbersFromGroup(s.group, s.count, pickedNumbersSet);
-                pickedFromGroup.forEach(num => {
-                    if (newCombination.length < 6 && !newCombination.includes(num)) {
-                        newCombination.push(num);
-                    }
-                });
-            });
+            // 그룹별 숫자 선택하기 전에 각 그룹의 크기 확인 및 조정
+            if (numberGroups.hot.length < hotCount) {
+                // 핫 그룹 부족 시 중립 그룹에서 보충
+                neutralCount += (hotCount - numberGroups.hot.length);
+                hotCount = numberGroups.hot.length;
+            }
             
-            // 만약 6개를 채우지 못했다면 (그룹의 크기가 작은 경우)
-            if (newCombination.length < 6) {
-                const remainingNeeded = 6 - newCombination.length;
-                const yetAvailableAndNotPicked = availableNumbers.filter(n => !pickedNumbersSet.has(n));
-                const pickedFromRemaining = getRandomUniqueNumbersFromGroup(
-                    yetAvailableAndNotPicked, 
-                    remainingNeeded, 
-                    pickedNumbersSet
-                );
+            if (numberGroups.neutral.length < neutralCount) {
+                // 중립 그룹 부족 시 나머지를 콜드 그룹에서 보충
+                coldCount += (neutralCount - numberGroups.neutral.length);
+                neutralCount = numberGroups.neutral.length;
+            }
+            
+            if (numberGroups.cold.length < coldCount) {
+                // 콜드 그룹 부족 시 다른 그룹에서 보충 시도
+                const deficit = coldCount - numberGroups.cold.length;
+                coldCount = numberGroups.cold.length;
                 
-                pickedFromRemaining.forEach(num => {
-                    if (newCombination.length < 6 && !newCombination.includes(num)) {
-                        newCombination.push(num);
+                // 핫 그룹에서 먼저 보충 시도
+                if (numberGroups.hot.length > hotCount) {
+                    const additionalHot = Math.min(deficit, numberGroups.hot.length - hotCount);
+                    hotCount += additionalHot;
+                    
+                    // 핫으로 완전히 보충 안 되면, 중립에서 나머지 보충
+                    if (additionalHot < deficit && numberGroups.neutral.length > neutralCount) {
+                        neutralCount += (deficit - additionalHot);
                     }
-                });
+                } else if (numberGroups.neutral.length > neutralCount) {
+                    // 핫 그룹에서 보충 불가하면 중립에서 보충
+                    neutralCount += deficit;
+                }
             }
             
-            // 만약 여전히 6개를 채우지 못했다면 (이론상 발생하지 않아야 함)
-            if (newCombination.length < 6) {
-                console.warn(`AI 생성: ${i+1}번째 조합 생성 시 6개를 채우지 못했습니다. (${newCombination.length}개). 무작위로 추가합니다.`);
-                // 무작위로 다시 생성
-                let emergencyPool = [...availableNumbers].sort(() => 0.5 - Math.random());
-                newCombination = emergencyPool.slice(0, 6);
+            // 선택된 그룹별 숫자 개수 합계가 6이 아니면 조정
+            const totalSelected = hotCount + neutralCount + coldCount;
+            if (totalSelected !== 6) {
+                const difference = 6 - totalSelected;
+                
+                if (difference > 0) {
+                    // 부족하면 가능한 그룹에서 추가
+                    if (numberGroups.hot.length > hotCount) {
+                        hotCount += Math.min(difference, numberGroups.hot.length - hotCount);
+                    } else if (numberGroups.neutral.length > neutralCount) {
+                        neutralCount += Math.min(difference, numberGroups.neutral.length - neutralCount);
+                    } else {
+                        coldCount += Math.min(difference, numberGroups.cold.length - coldCount);
+                    }
+                } else if (difference < 0) {
+                    // 초과하면 감소 (순서: 콜드 -> 중립 -> 핫)
+                    const excess = -difference;
+                    if (coldCount >= excess) {
+                        coldCount -= excess;
+                    } else if (coldCount + neutralCount >= excess) {
+                        const remainingExcess = excess - coldCount;
+                        coldCount = 0;
+                        neutralCount -= remainingExcess;
+                    } else {
+                        const remainingExcess = excess - coldCount - neutralCount;
+                        coldCount = 0;
+                        neutralCount = 0;
+                        hotCount -= remainingExcess;
+                    }
+                }
             }
             
-            // 생성된 번호 오름차순 정렬
-            newCombination.sort((a, b) => a - b);
+            // 최종 확인: 그룹별 선택 개수가 각 그룹의 크기를 넘지 않도록
+            hotCount = Math.min(hotCount, numberGroups.hot.length);
+            neutralCount = Math.min(neutralCount, numberGroups.neutral.length);
+            coldCount = Math.min(coldCount, numberGroups.cold.length);
             
-            // 생성된 조합 배열에 추가
-            currentGeneratedCombinations.push(newCombination);
+            // 각 그룹에서 무작위로 숫자 선택
+            const selectedHot = shuffleArray([...numberGroups.hot]).slice(0, hotCount);
+            const selectedNeutral = shuffleArray([...numberGroups.neutral]).slice(0, neutralCount);
+            const selectedCold = shuffleArray([...numberGroups.cold]).slice(0, coldCount);
+            
+            // 선택된 숫자 결합 및 정렬
+            const newCombination = [...selectedHot, ...selectedNeutral, ...selectedCold].sort((a, b) => a - b);
+            
+            // 중복 확인 (동일한 조합이 이미 생성되었는지)
+            const isDuplicate = currentGeneratedCombinations.some(combo => 
+                combo.length === newCombination.length && 
+                combo.every((value, index) => value === newCombination[index])
+            );
+            
+            if (!isDuplicate) {
+                // 생성된 조합 배열에 추가
+                currentGeneratedCombinations.push(newCombination);
+            } else {
+                // 중복이면 카운터 감소하여 다시 시도
+                i--;
+                
+                // 무한 루프 방지를 위한 제한
+                if (i < -10) { // 10번 이상 실패하면 중단
+                    console.warn("중복 없는 조합 생성 시도 실패");
+                    break;
+                }
+            }
         }
         
-        // 7. 생성된 조합 결과 표시
+        // 10. 생성된 조합 결과 표시
         if (currentGeneratedCombinations.length === 0) {
             resultsArea.innerHTML = '<p>생성된 조합이 없습니다.</p>';
             return;
-        } 
+        }
         
         // 제목 추가
         const resultTitle = document.createElement('h3');
@@ -726,23 +935,29 @@
             resultsArea.appendChild(combinationDiv);
         });
         
-        // 8. 역대 회차별 당첨 시뮬레이션 결과 제목 추가
+        // 11. 역대 회차별 당첨 시뮬레이션 결과 제목 추가
         const simulationTitle = document.createElement('h4');
-        simulationTitle.textContent = 'AI 생성 조합의 역대 회차별 당첨 시뮬레이션 결과:';
+        simulationTitle.textContent = '역대 회차별 당첨 시뮬레이션 결과:';
         simulationTitle.style.marginTop = '30px';
         resultsArea.appendChild(simulationTitle);
         
-        // 9. 로드된 데이터 확인
-        if (historicalWinningNumbers.length === 0) {
-            const noDataMsg = document.createElement('p');
-            noDataMsg.textContent = 'CSV 파일을 먼저 로드해주세요.';
-            noDataMsg.style.color = 'red';
-            resultsArea.appendChild(noDataMsg);
-            return;
-        }
-        
-        // 10. 각 역대 당첨 회차에 대한 시뮬레이션 수행
+        // 12. 각 역대 당첨 회차에 대한 시뮬레이션 수행
         historicalWinningNumbers.forEach(historicalEntry => {
+            // 회차 결과 컨테이너 생성
+            const roundResultContainer = document.createElement('div');
+            roundResultContainer.className = 'round-result-container';
+            resultsArea.appendChild(roundResultContainer);
+            
+            // 회차 제목 추가
+            const roundTitle = document.createElement('h5');
+            roundTitle.textContent = `${historicalEntry.round}회차 결과:`;
+            roundResultContainer.appendChild(roundTitle);
+            
+            // 당첨번호 정보 표시
+            const winningNumbersInfo = document.createElement('p');
+            winningNumbersInfo.innerHTML = `<strong>당첨번호:</strong> ${historicalEntry.numbers.join(', ')} <span style="color: #FF6600;">(보너스: ${historicalEntry.bonus})</span>`;
+            roundResultContainer.appendChild(winningNumbersInfo);
+            
             // a. 현재 회차에 대한 당첨 통계 초기화
             const currentRoundRankCounts = {
                 "1등": 0,
@@ -752,7 +967,7 @@
                 "5등": 0
             };
             
-            // b. 생성된 각 조합에 대한 당첨 여부 확인
+            // b. 생성된 각 조합에 대한 당첨 여부 확인 및 표시
             let totalWinsThisRound = 0;
             currentGeneratedCombinations.forEach(combo => {
                 // i. 현재 조합과 역대 당첨번호 비교
