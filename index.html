@@ -65,6 +65,14 @@
             background-color: #0b7dda;
         }
         
+        #combination-count-input {
+            width: 60px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        
         #results-area {
             margin-top: 20px;
         }
@@ -129,10 +137,8 @@
     </div>
     
     <div class="controls">
-        <label for="combination-count">생성할 조합 개수:</label>
-        <select id="combination-count">
-            <!-- 1부터 50까지의 옵션이 자바스크립트로 동적으로 추가됩니다 -->
-        </select>
+        <label for="combination-count-input">생성할 조합 개수 (1-50):</label>
+        <input type="number" id="combination-count-input" value="5" min="1" max="50">
         
         <button id="generate-button">번호 생성</button>
         <button id="ai-generate-button">AI 번호 생성</button>
