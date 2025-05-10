@@ -17,7 +17,6 @@
     // 초기화 함수 - 페이지 로드 시 실행
     function init() {
         createExcludeNumbersGrid();
-        createCombinationCountOptions();
         setupEventListeners();
     }
     
@@ -273,22 +272,6 @@
         }
     }
     
-    // 조합 개수 선택 드롭다운 옵션 생성 함수
-    function createCombinationCountOptions() {
-        const combinationCountSelect = document.getElementById('combination-count');
-        
-        if (combinationCountSelect) {
-            for (let i = 1; i <= 50; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = i;
-                combinationCountSelect.appendChild(option);
-            }
-        } else {
-            console.error('ID가 "combination-count"인 select 요소를 찾을 수 없습니다.');
-        }
-    }
-    
     // 번호 생성 버튼 클릭 처리 함수
     function generateLottoNumbers() {
         console.log("번호 생성 버튼 클릭됨!");
@@ -327,18 +310,20 @@
         }
         
         // 3. 생성할 조합 개수 결정
-        const combinationCountSelect = document.getElementById('combination-count');
-        const numberOfCombinationsToGenerate = parseInt(combinationCountSelect.value);
+        const combinationCountInput = document.getElementById('combination-count-input');
+        let numberOfCombinationsToGenerate = parseInt(combinationCountInput.value);
         console.log(`생성할 조합 개수: ${numberOfCombinationsToGenerate}`);
+        
+        // 4. 유효성 검사: 생성할 조합 개수가 유효한지 확인
+        if (isNaN(numberOfCombinationsToGenerate) || numberOfCombinationsToGenerate < 1 || numberOfCombinationsToGenerate > 50) {
+            // 유효하지 않은 값이면 기본값 5로 설정
+            alert("생성할 조합 개수는 1에서 50 사이의 숫자여야 합니다. 기본값 5로 설정됩니다.");
+            numberOfCombinationsToGenerate = 5;
+            combinationCountInput.value = 5;
+        }
         
         // 마지막 생성 개수 저장
         lastNumberOfCombinationsToGenerate = numberOfCombinationsToGenerate;
-        
-        // 4. 유효성 검사: 생성할 조합 개수가 유효한지 확인
-        if (numberOfCombinationsToGenerate <= 0) {
-            resultsArea.innerHTML = '<p>생성할 조합 개수는 1 이상이어야 합니다.</p>';
-            return;
-        }
         
         // 5. 새로운 로또 번호 조합 생성
         
@@ -636,18 +621,20 @@
         }
         
         // 3. 생성할 조합 개수 결정
-        const combinationCountSelect = document.getElementById('combination-count');
-        const numberOfCombinationsToGenerate = parseInt(combinationCountSelect.value);
+        const combinationCountInput = document.getElementById('combination-count-input');
+        let numberOfCombinationsToGenerate = parseInt(combinationCountInput.value);
         console.log(`생성할 조합 개수: ${numberOfCombinationsToGenerate}`);
+        
+        // 4. 유효성 검사: 생성할 조합 개수가 유효한지 확인
+        if (isNaN(numberOfCombinationsToGenerate) || numberOfCombinationsToGenerate < 1 || numberOfCombinationsToGenerate > 50) {
+            // 유효하지 않은 값이면 기본값 5로 설정
+            alert("생성할 조합 개수는 1에서 50 사이의 숫자여야 합니다. 기본값 5로 설정됩니다.");
+            numberOfCombinationsToGenerate = 5;
+            combinationCountInput.value = 5;
+        }
         
         // 마지막 생성 개수 저장
         lastNumberOfCombinationsToGenerate = numberOfCombinationsToGenerate;
-        
-        // 4. 유효성 검사: 생성할 조합 개수가 유효한지 확인
-        if (numberOfCombinationsToGenerate <= 0) {
-            resultsArea.innerHTML = '<p>생성할 조합 개수는 1 이상이어야 합니다.</p>';
-            return;
-        }
         
         // 5. 번호 빈도 데이터 확인
         if (Object.keys(numberFrequencies).length === 0) {
