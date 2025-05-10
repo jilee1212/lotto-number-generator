@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로또 번호 생성기</title>
+    <style>
+        #exclude-numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr); /* 한 줄에 9개씩 */
+            gap: 5px; /* 버튼 사이 간격 */
+            max-width: 400px; /* 그리드 최대 너비 */
+            margin-bottom: 20px; /* 그리드 아래 여백 */
+        }
+        
+        .number-button {
+            padding: 8px 5px;
+            border: 1px solid #ccc;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .number-button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .number-button.selected {
+            background-color: #4CAF50; /* 선택된 버튼 배경색 */
+            color: white; /* 선택된 버튼 글자색 */
+            border-color: #388E3C;
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        
+        #generate-button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        #generate-button:hover {
+            background-color: #45a049;
+        }
+        
+        #ai-generate-button {
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        
+        #ai-generate-button:hover {
+            background-color: #0b7dda;
+        }
+        
+        #results-area {
+            margin-top: 20px;
+        }
+        
+        .file-input-container {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .specific-round-container {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        #specificRoundInput {
+            width: 80px;
+            padding: 8px;
+            margin-right: 10px;
+        }
+        
+        #compareSpecificRoundButton {
+            padding: 8px 15px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        #compareSpecificRoundButton:hover {
+            background-color: #0b7dda;
+        }
+        
+        #specificRoundResultArea {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>로또 번호 생성기 프로젝트 시작!</h1>
+    
+    <!-- CSV 파일 입력 필드 -->
+    <div class="file-input-container">
+        <label for="csvFileInput">역대 당첨번호 CSV 파일 선택:</label>
+        <input type="file" id="csvFileInput" accept=".csv">
+        <p id="fileLoadStatus" style="font-size: 0.9em; color: green;"></p>
+    </div>
+    
+    <h3>제외할 번호 선택 (클릭하세요):</h3>
+    <div id="exclude-numbers-grid">
+        <!-- 1부터 45까지의 번호 버튼들이 자바스크립트로 동적으로 추가됩니다 -->
+    </div>
+    
+    <div class="controls">
+        <label for="combination-count">생성할 조합 개수:</label>
+        <select id="combination-count">
+            <!-- 1부터 50까지의 옵션이 자바스크립트로 동적으로 추가됩니다 -->
+        </select>
+        
+        <button id="generate-button">번호 생성</button>
+        <button id="ai-generate-button">AI 번호 생성</button>
+    </div>
+    
+    <!-- 특정 회차 비교 기능 -->
+    <div class="specific-round-container">
+        <h3>특정 회차 비교</h3>
+        <div>
+            <label for="specificRoundInput">비교할 회차 번호:</label>
+            <input type="number" id="specificRoundInput" min="1" placeholder="예: 1000">
+            <button id="compareSpecificRoundButton">이 회차와 비교</button>
+        </div>
+        <div id="specificRoundResultArea">
+            <!-- 특정 회차 비교 결과가 여기에 표시됩니다 -->
+        </div>
+    </div>
+    
+    <!-- 결과 영역 -->
+    <div id="results-area">
+        <p>생성된 번호가 여기에 표시됩니다.</p>
+    </div>
+    <script src="script.js" defer></script>
+</body>
+</html>
